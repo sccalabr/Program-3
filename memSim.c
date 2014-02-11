@@ -1,14 +1,51 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include"memSim.h"
 
-int frames = 0;
-FILE *file = null;
+unsigned int frames = 0;
+unsigned int physicalMemorySize = 0;
+unsigned double pageTableLookUps = 0;
+unsigned double pageFaults = 0;
+unsigned double tlbHits = 0;
+unsigned double tlbMisses = 0;
+
+char *physicalMemory = NULL;
+
+FILE *file = NULL;
+
+NEED_TO_THINK_OF_A_GOOD_NAME tlb[TLB_TABLE_ENTRIES];
+NEED_TO_THINK_OF_A_GOOD_NAME pageTable[PAGE_TABLE_ENTRIES];
+
+
+void noReplacement() {
+
+
+}
+
+void fifoReplacement() {
+
+
+}
+
+void lruReplacement() {
+
+
+}
+
+void optReplacement() {
+
+
+}
 
 int main(int argc, char **argv) 
 {
 	
 	file = fopen(argv[1], "r");
+	
 	frames = atoi(argv[2]);
+	physicalMemorySize = PAGE_SIZE * frames;
+	
+	physicalMemory = (char *)calloc(1, physicalMemorySize);
 	
 	if(argc == 3) {
 		noReplacement();
