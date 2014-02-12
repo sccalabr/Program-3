@@ -6,10 +6,17 @@
 #define PAGE_SIZE 256
 #define FRAME_SIZE 256
 
-typedef struct {
-	unsigned int logicalMemoryPageNum;
-	unsigned int physicalMemoryFrameNum
+typedef struct NEED_TO_THINK_OF_A_GOOD_NAME{
+   int logicalMemoryPageNum;
+   int physicalMemoryFrameNum;
 } NEED_TO_THINK_OF_A_GOOD_NAME;
+
+
+typedef struct Node{
+   struct Node *prev;
+   struct Node *next;
+   struct NEED_TO_THINK_OF_A_GOOD_NAME *thing;
+} Node;
 
 void noReplacement();
 
