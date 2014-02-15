@@ -6,8 +6,9 @@
 
 unsigned int frames = 0;
 unsigned int physicalMemorySize = 0;
-double pageTableLookUps = 0;
-double pageFaults = 0;
+
+double pageHits = 0;
+double pageMisses = 0;
 double tlbHits = 0;
 double tlbMisses = 0;
 
@@ -18,8 +19,6 @@ int sizeOfMemBlock = 0;
 unsigned int offSetMask = 0; 
 unsigned int pageNumberMask = 0;
 unsigned int frameNumberCounter = 0;
-
-MemBlock *physicalMemory = NULL;
 
 FILE *file = NULL;
 FILE *binaryFile = NULL;
@@ -220,14 +219,20 @@ void noReplacement() {
       
       Node *inTLB = checkIfInTLB(page);
       if(inTLB) {
+      tlbHits++;
          findByte(inTLB, offset);
       }
       else  {
+      tlbMisses++;
          Node *inPageTable = checkIfInPageTable(page);
          
          if(!inPageTable) {
+            pageMisses++;
             loadFrame(page);
             inPageTable = checkIfInPageTable(page);
+         }
+         else {
+            pageHits++;
          }
          findByte(inPageTable, offset);
       }
@@ -247,12 +252,16 @@ void fifoReplacement() {
       Node *inTLB = checkIfInTLB(page);
       
       if(inTLB) {
+         tlbHits++;
          findByte(inTLB, offset);
       }
       else  {
+         tlbMisses++;
+         
          Node *inPageTable = checkIfInPageTable(page);
          
          if(!inPageTable) {
+            pageMisses++;
             if(sizeOfTLB == 16) {
                removeAndFreeStartNodeTLB();
             }
@@ -264,6 +273,8 @@ void fifoReplacement() {
             inPageTable = checkIfInPageTable(page);
          }
          else {
+            pageHits++;
+            
             if(sizeOfTLB == 16) {
                removeAndFreeStartNodeTLB();
             }
@@ -290,6 +301,7 @@ void lruReplacement() {
       Node *inTLB = checkIfInTLB(page);
       
       if(inTLB) {
+         tlbHits++;
          currentTLB->prev->next = currentTLB->next;
          currentTLB->next->prev = currentTLB->prev;
          endTLB->next = currentTLB;
@@ -303,9 +315,13 @@ void lruReplacement() {
          endMemBlock = currentMemBlock;
       }
       else {
+         tlbMisses++;
+         
          Node *inPageTable = checkIfInPageTable(page);
          
          if(!inPageTable) {
+            pageMisses++;        
+            
             if(sizeOfTLB == 16) {
                removeAndFreeStartNodeTLB();
             }
@@ -317,6 +333,8 @@ void lruReplacement() {
             inPageTable = checkIfInPageTable(page);
          }
          else {
+            pageHits++;
+            
             if(sizeOfTLB == 16) {
                removeAndFreeStartNodeTLB();
             }
@@ -342,15 +360,12 @@ void optReplacement() {
 
 
 }
-/* NOT SURE WHAT HE IS ASKING FOR IN THE PRINT OUT
-void printPageTable() {
-   MemBlock *iterator = startMemBlock;
-   for(; iterator; iterator = iterator->next) {
-      printf("%d %X\n", iterator->frameNum, iterator->data);
-   }
 
+void printHitAndMisses() {
+   printf("PAGEFAULT: %lf PAGEFAULT_RATE: %lf\n", pageHits, pageMisses / (pageHits + pageMisses));
+   printf("TLBHITs: %lf TLBMISSES: %lf TLB_MISS_RATE: %lf\n", tlbHits, tlbMisses, tlbMisses / (tlbHits + tlbMisses));
 }
-*/
+
 int main(int argc, char **argv) 
 {
 
@@ -376,6 +391,6 @@ int main(int argc, char **argv)
       printf("NOT SUPPORTED\n");
       exit(0);
    }
-//   printPageTable();
+   printHitAndMisses();
    fclose(file);
 }
