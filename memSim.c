@@ -72,7 +72,7 @@ Node *checkIfInPageTable(unsigned int pageNumber) {
    Node *iterator = startPageTable;
    int i;
    
-   for(i = 0; iterator && i < frames; i++, iterator = (Node *)iterator->next) {
+   for(i = 0; iterator && i < sizeOfPageTable; i++, iterator = (Node *)iterator->next) {
       PageAndFrameNumber *data = (PageAndFrameNumber *)iterator->data;
       int thingsPageNum = data->pageNum;
       if(pageNumber == thingsPageNum) {
@@ -83,6 +83,28 @@ Node *checkIfInPageTable(unsigned int pageNumber) {
    return NULL;
 }
 
+MemBlock *findMemBlock(unsigned int frameNumber) {
+   
+   if(LOGGER) {
+      printf("===== FIND MEMBLOCK =====\n");
+   }
+   
+   if(sizeOfMemBlock == 0) {
+      return NULL;
+   }
+   
+   MemBlock *iterator = startMemBlock;
+   int i;
+ /*  
+   for(i = 0; iterator && i < frames; i++, iterator = (MemBlock  *)iterator->next) {
+      int thingsPageNum = MemBlock->frameNum;
+      if(frameNumber == thingsPageNum) {
+         return iterator;
+      }
+   }
+*/
+   return NULL;
+}
 void makeNewTLBNode(unsigned int pageNumber, unsigned int frameNumber) {
    
    if(LOGGER) {
@@ -130,6 +152,7 @@ void makeNewPageTableNode(unsigned int pageNumber) {
       temp->prev = endPageTable;
       endPageTable = temp;
    }
+
    
    sizeOfPageTable++;
 }
@@ -155,7 +178,7 @@ void makeNewMemBlock(unsigned int page) {
       temp->prev = endMemBlock;
       endMemBlock = temp;
    }
-
+   sizeOfMemBlock++;
 }
 
 void removeAndFreeStartNodeTLB() {
@@ -169,10 +192,10 @@ void removeAndFreeStartNodeTLB() {
 }
 
 void removeAndFreeStartMemBlock() {
-  
+ // printf("HERE\n");
    MemBlock *toFree = startMemBlock;
+ //  printf("StartMemBlock: %d\n", startMemBlock->frameNum);
    startMemBlock = startMemBlock->next;
-   
    free(toFree);
    sizeOfMemBlock--;
 }
@@ -195,8 +218,7 @@ void loadFrame(unsigned int page){
 void findByte(Node *inPageTable, unsigned int offset) {
 
    MemBlock *iterator = startMemBlock;
-   
-   for(; iterator; iterator = iterator->next) {
+   for( ; iterator; iterator = iterator->next) {
       if(iterator->frameNum == inPageTable->data->frameNum) {
          break;
       }
@@ -299,15 +321,18 @@ void lruReplacement() {
       unsigned int page = number & pageNumberMask;
       
       Node *inTLB = checkIfInTLB(page);
-      
+
       if(inTLB) {
+      printf("=====123===\n");
          tlbHits++;
-         currentTLB->prev->next = currentTLB->next;
-         currentTLB->next->prev = currentTLB->prev;
-         endTLB->next = currentTLB;
-         currentTLB->prev = endTLB;
-         endTLB = currentTLB;
+         inTLB->prev->next = inTLB->next;
+         inTLB->next->prev = inTLB->prev;
+         endTLB->next = inTLB;
+         inTLB->prev = endTLB;
+         endTLB = inTLB;
          
+         //MemBlock *currentMemBlock = findMemBlock(); 
+         printf("this is going to seg hard\n");
          currentMemBlock->prev->next = currentMemBlock->next;
          currentMemBlock->next->prev = currentMemBlock->prev;
          endMemBlock->next = currentMemBlock;
@@ -316,25 +341,25 @@ void lruReplacement() {
       }
       else {
          tlbMisses++;
-         
+         printf("====0====\n");
          Node *inPageTable = checkIfInPageTable(page);
          
          if(!inPageTable) {
             pageMisses++;        
-            
+            printf("====1====\n");
             if(sizeOfTLB == 16) {
                removeAndFreeStartNodeTLB();
             }
             if(sizeOfMemBlock == frames) {
                removeAndFreeStartMemBlock();
             }  
-            
+            printf("====2====\n");
             loadFrame(page);
             inPageTable = checkIfInPageTable(page);
          }
          else {
             pageHits++;
-            
+            printf("====3====\n");
             if(sizeOfTLB == 16) {
                removeAndFreeStartNodeTLB();
             }
@@ -342,7 +367,7 @@ void lruReplacement() {
             // if we have variable size memblock (not 256) then we are going to need to do somethin
             // similiar to what I did above I think...
             //makeNewMemBlock(inPageTable->data->frameNum) 
-            
+            printf("this is going to seg hard\n");
             currentMemBlock->prev->next = currentMemBlock->next;
             currentMemBlock->next->prev = currentMemBlock->prev;
             endMemBlock->next = currentMemBlock;
@@ -353,12 +378,23 @@ void lruReplacement() {
       }
       
       fscanf (file, "%d", &number);   
+      printPageTable();
    }
 }
 
 void optReplacement() {
 
 
+}
+
+void printPageTable() {
+
+   MemBlock *iterator = startMemBlock;
+   printf("==============\n");
+   for(; iterator; iterator = iterator->next) {
+      printf("FrameNumber: %d\n", iterator->frameNum);
+   }
+   printf("==============\n");
 }
 
 void printHitAndMisses() {
@@ -373,7 +409,7 @@ int main(int argc, char **argv)
    offSetMask = (1 << 8) - 1; 
    pageNumberMask = ((1 << 16) - 1) ^ offSetMask;
 
-   frames = 256;//atoi(argv[2]);
+   frames = atoi(argv[2]);
 
    if(argc == 3) {
       noReplacement();
